@@ -35,9 +35,6 @@ int main(int argc, char *argv[]) {
     NodeContainer nSrc2nRtr = NodeContainer(nSrc2, nRtr);
     NodeContainer nRtrnDst  = NodeContainer(nRtr, nDst);
 
-    InternetStackHelper stack;
-    stack.Install(nodes);
-
     // Create P2P channels
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue("1Mbps"));
@@ -46,6 +43,9 @@ int main(int argc, char *argv[]) {
     NetDeviceContainer dSrc1dRtr = p2p.Install(nSrc1nRtr);
     NetDeviceContainer dSrc2dRtr = p2p.Install(nSrc2nRtr);
     NetDeviceContainer dRtrdDst  = p2p.Install(nRtrnDst);
+
+    InternetStackHelper stack;
+    stack.Install(nodes);
 
     // Add IP addresses
     NS_LOG_INFO("Assign IP Addresses.");
@@ -69,10 +69,10 @@ int main(int argc, char *argv[]) {
 //==========================================================================================
 /*  ToDo: Install packet sinks to the destinations
     Hint: Need to install packet sinks for both TCP and UDP traffic */
-    PacketSinkHelper packetSinkHelperTcp(...);
-    ApplicationContainer sinkAppTcp(...);
-    PacketSinkHelper packetSinkHelperUdp(...);
-    ApplicationContainer sinkAppUdp(...);
+    PacketSinkHelper packetSinkHelperTcp("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPortTcp));
+    ApplicationContainer sinkAppTcp = packetSinkHelperTcp.Install(nDst);
+    PacketSinkHelper packetSinkHelperUdp("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPortUdp));
+    ApplicationContainer sinkAppUdp = packetSinkHelperUdp.Install(nDst);
 //==========================================================================================
 
     sinkAppTcp.Start(Seconds(0));
@@ -92,8 +92,8 @@ int main(int argc, char *argv[]) {
 //==========================================================================================
 /*  ToDo: Connect the trace source and the trace sink
     Hint: Refer to week6_ex4.cc */
-    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket(...);
-    ns3TcpSocket->TraceConnectWithoutContext(...);
+    Ptr<Socket> ns3TcpSocket = Socket::CreateSocket(nSrc1, TcpSocketFactory::GetTypeId());
+    ns3TcpSocket->TraceConnectWithoutContext("CongestionWindow", MakeCallback(&CwndChange));
     nSrc1->GetApplication(0)->GetObject<OnOffApplication>()->SetSocket(ns3TcpSocket);
 //==========================================================================================
 
@@ -101,16 +101,19 @@ int main(int argc, char *argv[]) {
 /*  ToDo: Implement UDP application
     Hint: Refer to the TCP app implementation procedure above
     Warning: UDP app turns on and off every 1s and use variable "udpRate" for DataRate */
-    OnOffHelper onoffUdp(...);
-    onoffUdp.SetAttribute(...);
-    onoffUdp.SetAttribute(...);
-    onoffUdp.SetAttribute(...);
-    ApplicationContainer sourceAppUdp = onoffUdp.Install(...);
+    OnOffHelper onoffUdp("ns3::UdpSocketFactory", sinkAddressUdp);
+    onoffUdp.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    onoffUdp.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    onoffUdp.SetAttribute("DataRate", DataRateValue(udpRate));
+    ApplicationContainer sourceAppUdp = onoffUdp.Install(nSrc2);
     sourceAppUdp.Start(Seconds(1));
     sourceAppUdp.Stop(Seconds(30));
 //==========================================================================================
 
-  Simulator::Stop(Seconds(30));
-  Simulator::Run();
-  Simulator::Destroy();
+    Simulator::Run();
+    Simulator::Stop(Seconds(30));
+
+    Simulator::Destroy();
+
+    return 0;
 }
