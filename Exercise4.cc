@@ -66,14 +66,11 @@ int main(int argc, char *argv[]) {
     Address sinkAddressTcp(InetSocketAddress(iRtriDst.GetAddress(1), sinkPortTcp));
     Address sinkAddressUdp(InetSocketAddress(iRtriDst.GetAddress(1), sinkPortUdp));
 
-//==========================================================================================
-/*  ToDo: Install packet sinks to the destinations
-    Hint: Need to install packet sinks for both TCP and UDP traffic */
+    // Install packet sinks to the destinations
     PacketSinkHelper packetSinkHelperTcp("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPortTcp));
     ApplicationContainer sinkAppTcp = packetSinkHelperTcp.Install(nDst);
     PacketSinkHelper packetSinkHelperUdp("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), sinkPortUdp));
     ApplicationContainer sinkAppUdp = packetSinkHelperUdp.Install(nDst);
-//==========================================================================================
 
     sinkAppTcp.Start(Seconds(0));
     sinkAppTcp.Stop(Seconds(30));
@@ -89,18 +86,12 @@ int main(int argc, char *argv[]) {
     sourceAppTcp.Start(Seconds(5));
     sourceAppTcp.Stop(Seconds(20));
 
-//==========================================================================================
-/*  ToDo: Connect the trace source and the trace sink
-    Hint: Refer to week6_ex4.cc */
+    //Connect the trace source and the trace sink
     Ptr<Socket> ns3TcpSocket = Socket::CreateSocket(nSrc1, TcpSocketFactory::GetTypeId());
     ns3TcpSocket->TraceConnectWithoutContext("CongestionWindow", MakeCallback(&CwndChange));
     nSrc1->GetApplication(0)->GetObject<OnOffApplication>()->SetSocket(ns3TcpSocket);
-//==========================================================================================
 
-//==========================================================================================
-/*  ToDo: Implement UDP application
-    Hint: Refer to the TCP app implementation procedure above
-    Warning: UDP app turns on and off every 1s and use variable "udpRate" for DataRate */
+    // Implement UDP application
     OnOffHelper onoffUdp("ns3::UdpSocketFactory", sinkAddressUdp);
     onoffUdp.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
     onoffUdp.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -108,7 +99,6 @@ int main(int argc, char *argv[]) {
     ApplicationContainer sourceAppUdp = onoffUdp.Install(nSrc2);
     sourceAppUdp.Start(Seconds(1));
     sourceAppUdp.Stop(Seconds(30));
-//==========================================================================================
 
     Simulator::Run();
     Simulator::Stop(Seconds(30));
